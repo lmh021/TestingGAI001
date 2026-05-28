@@ -1,0 +1,6 @@
+{
+  "name": "Joint Speaking Exam Portal",
+  "description": "Interactive candidate dashboard, schedule examiner tool, and personal portal for the St. Paul's College & Ying Wa Girls' School Joint Speaking Exam.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
