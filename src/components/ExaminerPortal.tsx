@@ -6,7 +6,7 @@ import { Shield, Play, Pause, RotateCcw, AlertTriangle, Save, GraduationCap, Awa
 import { motion, AnimatePresence } from 'motion/react';
 
 export const ExaminerPortal: React.FC = () => {
-  const { checkedIn, grades, saveGrade, virtualTime } = useExam();
+  const { checkedIn, grades, saveGrade, virtualTime, resetGradesToCommencement, commencementGrades, deleteGrades } = useExam();
 
   // State: selected room
   const [selectedRoom, setSelectedRoom] = useState<string>('201');
@@ -21,6 +21,12 @@ export const ExaminerPortal: React.FC = () => {
   const [timerSeconds, setTimerSeconds] = useState<number>(480); // Default to 8 mins (480 secs)
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [timerMode, setTimerMode] = useState<'discussion' | 'individual'>('discussion');
+
+  // Autosave and reset confirmation states
+  const [isAutosaveEnabled, setIsAutosaveEnabled] = useState<boolean>(true);
+  const [autosaveStatus, setAutosaveStatus] = useState<Record<string, string>>({});
+  const [showResetConfirmGroup, setShowResetConfirmGroup] = useState<boolean>(false);
+  const [showResetConfirmAll, setShowResetConfirmAll] = useState<boolean>(false);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -149,13 +155,92 @@ export const ExaminerPortal: React.FC = () => {
   };
 
   const handleScoreChange = (letter: string, field: keyof CandidateGrade, value: any) => {
-    setFormGrades(prev => ({
-      ...prev,
-      [letter]: {
+    setFormGrades(prev => {
+      const updatedCandidateGrade = {
         ...prev[letter],
         [field]: value
+      };
+      
+      const updatedForm = {
+        ...prev,
+        [letter]: updatedCandidateGrade
+      };
+
+      // If autosave is enabled, immediately push changes to database context
+      const cand = activeGroup?.candidates[letter];
+      if (cand && isAutosaveEnabled) {
+        saveGrade(cand.id, updatedCandidateGrade);
+        
+        // Track autosave timestamp to display feedback
+        const timeNow = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+        setAutosaveStatus(prevSaveStatus => ({
+          ...prevSaveStatus,
+          [cand.id]: `Saved at ${timeNow}`
+        }));
       }
-    }));
+
+      return updatedForm;
+    });
+  };
+
+  // Reverts ONLY the currently active group candidates' grades to templates and clears them so they are not evaluated at all
+  const resetActiveGroupGrades = () => {
+    if (!activeGroup) return;
+    const items = ['A', 'B', 'C', 'D'] as const;
+    const originalForms = { ...formGrades };
+    const candIdsToDelete: string[] = [];
+    const updatedAutosaveStatus = { ...autosaveStatus };
+    
+    items.forEach(letter => {
+      const cand = activeGroup.candidates[letter];
+      if (cand) {
+        candIdsToDelete.push(cand.id);
+        const defaultGrade = {
+          pronunciation: 3,
+          vocabulary: 3,
+          organization: 3,
+          strategies: 3,
+          notes: ''
+        };
+        originalForms[letter] = defaultGrade;
+        delete updatedAutosaveStatus[cand.id];
+      }
+    });
+
+    deleteGrades(candIdsToDelete);
+    setFormGrades(originalForms);
+    setAutosaveStatus(updatedAutosaveStatus);
+    setSuccessToast(`Group ${activeGroupNo} evaluation scores successfully cleared. Candidates are now marked as unevaluated.`);
+    setTimeout(() => setSuccessToast(null), 4000);
+    setShowResetConfirmGroup(false);
+  };
+
+  // Reverts ALL grades globally and marks everyone as not evaluated
+  const resetAllSystemGrades = () => {
+    resetGradesToCommencement(); // Clears all grades in context
+    
+    // Also re-sync the active form grades to match the default empty state
+    if (activeGroup) {
+      const reSyncedForms = { ...formGrades };
+      (['A', 'B', 'C', 'D'] as const).forEach(letter => {
+        const cand = activeGroup.candidates[letter];
+        if (cand) {
+          reSyncedForms[letter] = {
+            pronunciation: 3,
+            vocabulary: 3,
+            organization: 3,
+            strategies: 3,
+            notes: ''
+          };
+        }
+      });
+      setFormGrades(reSyncedForms);
+    }
+    
+    setAutosaveStatus({});
+    setSuccessToast("All candidate evaluations successfully reset. All candidates are now marked as unevaluated.");
+    setTimeout(() => setSuccessToast(null), 4000);
+    setShowResetConfirmAll(false);
   };
 
   const submitGradeForm = (letter: string, candId: string, name: string) => {
@@ -233,14 +318,102 @@ export const ExaminerPortal: React.FC = () => {
                   onClick={() => setActiveGroupNo(g)}
                   className={`py-1.5 rounded-lg text-xs font-extrabold cursor-pointer transition-all border ${
                     activeGroupNo === g
-                      ? 'bg-slate-905 text-white border-slate-905 shadow-xs'
-                      : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-100'
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+                      : 'bg-slate-50 text-slate-550 border-slate-200 hover:border-slate-350 hover:bg-slate-100'
                   }`}
                 >
                   G{g}
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* AUTOSAVE MODE INJECTOR PANEL */}
+          <div className="pt-3.5 border-t border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold text-slate-400 tracking-widest block uppercase">Autosave Engine</span>
+              <span className={`text-[8.5px] font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                isAutosaveEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+              }`}>
+                {isAutosaveEnabled ? 'Live Active' : 'Suspended'}
+              </span>
+            </div>
+
+            <label className="flex items-center space-x-2 bg-slate-50 border border-slate-200 p-2.5 rounded-xl cursor-pointer hover:bg-slate-100/75 transition-colors select-none">
+              <input
+                type="checkbox"
+                checked={isAutosaveEnabled}
+                onChange={(e) => setIsAutosaveEnabled(e.target.checked)}
+                className="w-4 h-4 text-indigo-650 border-slate-350 rounded focus:ring-indigo-150 accent-indigo-650 cursor-pointer"
+              />
+              <span className="text-[11.5px] font-extrabold text-slate-700">Enable Live Autosave</span>
+            </label>
+          </div>
+
+          {/* HIGH-UTILITY GRADING RESET MECHANISMS */}
+          <div className="pt-3.5 border-t border-slate-200 space-y-2.5">
+            <span className="text-[9px] font-bold text-slate-400 tracking-widest block uppercase">Session Reset</span>
+            
+            <div className="space-y-2">
+              {/* Reset Group Section */}
+              {!showResetConfirmGroup ? (
+                <button
+                  onClick={() => setShowResetConfirmGroup(true)}
+                  className="w-full py-2 px-3 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 shrink-0" />
+                  <span>Reset Group G{activeGroupNo} Marks</span>
+                </button>
+              ) : (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-2.5 space-y-2">
+                  <span className="text-[10px] font-bold text-red-750 block leading-tight text-center">Reset Group {activeGroupNo} back to session commencement?</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={resetActiveGroupGrades}
+                      className="py-1 px-1 bg-red-650 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-wider rounded-lg cursor-pointer"
+                    >
+                      Yes, Revert!
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirmGroup(false)}
+                      className="py-1 px-1 bg-white hover:bg-slate-100 text-slate-700 text-[10px] border border-slate-300 font-bold rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Reset All Section */}
+              {!showResetConfirmAll ? (
+                <button
+                  onClick={() => setShowResetConfirmAll(true)}
+                  className="w-full py-2 px-3 bg-slate-100 hover:bg-slate-150 text-slate-700 border border-slate-205 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center justify-center space-x-1"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 shrink-0 text-slate-405" />
+                  <span>Reset All Candidate Marks</span>
+                </button>
+              ) : (
+                <div className="bg-slate-900 border border-slate-850 rounded-xl p-2.5 text-white space-y-2">
+                  <span className="text-[10.5px] font-bold text-amber-450 block leading-tight text-center">Reset ALL marks back to session commencement?</span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <button
+                      onClick={resetAllSystemGrades}
+                      className="py-1 px-1 bg-red-600 hover:bg-red-705 text-white text-[10px] font-black uppercase tracking-wider rounded-lg cursor-pointer"
+                    >
+                      Yes, Reset!
+                    </button>
+                    <button
+                      onClick={() => setShowResetConfirmAll(false)}
+                      className="py-1 px-1 bg-slate-800 hover:bg-slate-700 text-white text-[10px] border border-slate-705 font-semibold rounded-lg cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
 
@@ -394,13 +567,24 @@ export const ExaminerPortal: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Saved indication label */}
-                  {isSaved && (
-                    <div className="flex items-center text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100">
-                      <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                      <span>Graded Submitted</span>
-                    </div>
-                  )}
+                  {/* Saved indication label & Realtime Autosave timestamps */}
+                  <div className="flex flex-col items-start md:items-end gap-1.5 shrink-0">
+                    {isSaved && (
+                      <div className="flex items-center text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100 select-none">
+                        <CheckCircle className="w-3.5 h-3.5 mr-1 text-indigo-600" />
+                        <span>Scores Synced</span>
+                      </div>
+                    )}
+                    {isAutosaveEnabled && autosaveStatus[cand.id] ? (
+                      <span className="text-[9.5px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 border border-emerald-200/60 rounded-lg select-none">
+                        ⚡ {autosaveStatus[cand.id]}
+                      </span>
+                    ) : isAutosaveEnabled ? (
+                      <span className="text-[9.5px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 border border-slate-200/60 rounded-lg select-none">
+                        ⚡ Autosave standby
+                      </span>
+                    ) : null}
+                  </div>
                 </div>
 
                 {/* Score Controls Sliders/Buttons */}

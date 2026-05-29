@@ -5,6 +5,9 @@ import { CandidateFinder } from './components/CandidateFinder';
 import { MasterSchedule } from './components/MasterSchedule';
 import { ExaminerPortal } from './components/ExaminerPortal';
 import { CheckInSimulator } from './components/CheckInSimulator';
+import { CountdownTimer } from './components/CountdownTimer';
+import { OverallResults } from './components/OverallResults';
+import { FloatingClock } from './components/FloatingClock';
 import { allCandidates } from './examData';
 import { 
   Building2, 
@@ -24,8 +27,8 @@ import {
 import { motion } from 'motion/react';
 
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'finder' | 'master' | 'examiner' | 'checkin'>('dashboard');
-  const { virtualTime, setVirtualTime, isAutoPlay, setIsAutoPlay } = useExam();
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'finder' | 'master' | 'examiner' | 'checkin' | 'countdown' | 'results'>('dashboard');
+  const { virtualTime, setVirtualTime, isAutoPlay, setIsAutoPlay, countdownTime, isCountdownRunning } = useExam();
 
   // Presets of virtual time to jump to key moments of the day
   const virtualTimePresets = [
@@ -43,6 +46,8 @@ function AppContent() {
     master: 'Interactive Master Selection Grid',
     examiner: 'DSE Examiner Board & Grading Sheet',
     checkin: 'Admin Check-In Desk',
+    countdown: '10-Min Interactive Master Exam Timer',
+    results: 'Overall Candidates Evaluation Matrix Results & Export Portal',
   };
 
   const currentYear = new Date().getFullYear();
@@ -211,6 +216,39 @@ function AppContent() {
             <span>Registration Check Desk</span>
           </button>
 
+          {/* 10-MIN COUNTDOWN TAB WITH PERSISTENT TICKING BADGE */}
+          <button
+            onClick={() => setActiveTab('countdown')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer relative ${
+              activeTab === 'countdown'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-850 hover:bg-slate-50'
+            }`}
+          >
+            <Clock className={`w-3.5 h-3.5 ${isCountdownRunning ? 'animate-spin [animation-duration:8s]' : ''}`} />
+            <span>10-Min Countdown</span>
+            <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono leading-none ${
+              isCountdownRunning 
+                ? 'bg-red-500 text-white animate-pulse font-black' 
+                : 'bg-slate-100 text-slate-600 font-bold'
+            }`}>
+              {Math.floor(countdownTime / 60)}:{(countdownTime % 60).toString().padStart(2, '0')}
+            </span>
+          </button>
+
+          {/* OVERALL RESULTS MATRIX TAB */}
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center space-x-2 transition-all cursor-pointer ${
+              activeTab === 'results'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>Overall Results</span>
+          </button>
+
         </div>
 
         {/* Dynamic section titles */}
@@ -228,7 +266,12 @@ function AppContent() {
           {activeTab === 'master' && <MasterSchedule />}
           {activeTab === 'examiner' && <ExaminerPortal />}
           {activeTab === 'checkin' && <CheckInSimulator />}
+          {activeTab === 'countdown' && <CountdownTimer />}
+          {activeTab === 'results' && <OverallResults />}
         </div>
+
+        {/* VIEWPORT PERSISTENT FLOATING CLOCK WIDGET */}
+        <FloatingClock />
 
       </main>
 
