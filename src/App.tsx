@@ -46,7 +46,7 @@ function AppContent() {
     master: 'Interactive Master Selection Grid',
     examiner: 'DSE Examiner Board & Grading Sheet',
     checkin: 'Admin Check-In Desk',
-    countdown: '10-Min Interactive Master Exam Timer',
+    countdown: '10-Min Preparation',
     results: 'Overall Candidates Evaluation Matrix Results & Export Portal',
   };
 
@@ -76,7 +76,7 @@ function AppContent() {
               <span className="text-[8px] bg-slate-100 text-slate-500 border border-slate-200 px-1 py-0.2 rounded font-bold uppercase tracking-wider">HKDSE Spec</span>
             </div>
             <h1 className="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight leading-none mt-0.5">
-              SPC & YWGS Joint English Certificate Exam
+              St. Paul’s College & Ying Wa Girls’ School F.5 Final Examinations 2025 - 2026 English Language Paper 4: Speaking
             </h1>
           </div>
         </div>
@@ -226,7 +226,7 @@ function AppContent() {
             }`}
           >
             <Clock className={`w-3.5 h-3.5 ${isCountdownRunning ? 'animate-spin [animation-duration:8s]' : ''}`} />
-            <span>10-Min Countdown</span>
+            <span>10-Min Preparation</span>
             <span className={`ml-1 px-1.5 py-0.5 rounded text-[10px] font-mono leading-none ${
               isCountdownRunning 
                 ? 'bg-red-500 text-white animate-pulse font-black' 

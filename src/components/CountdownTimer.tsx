@@ -24,7 +24,15 @@ export const CountdownTimer: React.FC = () => {
     setIsCountdownRunning 
   } = useExam();
 
-  const [soundMuted, setSoundMuted] = React.useState<boolean>(false);
+  const [soundMuted, setSoundMuted] = React.useState<boolean>(() => {
+    return localStorage.getItem('exam_portal_sound_muted') === 'true';
+  });
+
+  const handleToggleMute = () => {
+    const nextMuted = !soundMuted;
+    setSoundMuted(nextMuted);
+    localStorage.setItem('exam_portal_sound_muted', String(nextMuted));
+  };
 
   // Formatting seconds to MM:SS
   const formatTime = (totalSeconds: number) => {
@@ -109,9 +117,8 @@ export const CountdownTimer: React.FC = () => {
           isTimeUp ? 'bg-red-500/10' : isTimeCritical ? 'bg-amber-500/15' : 'bg-indigo-500/5'
         }`} />
 
-        <div className="flex items-center space-x-2 text-slate-400 text-xs font-bold uppercase tracking-wider mb-6">
-          <Timer className="w-4 h-4 text-indigo-600" />
-          <span>Interactive Exam Clock Controller</span>
+        <div className="flex items-center justify-center text-indigo-600 mb-6 bg-indigo-50 p-2.5 rounded-full border border-indigo-100 shadow-xs">
+          <Clock className="w-5 h-5 shrink-0" />
         </div>
 
         {/* Circular Timing Display or Ring */}
@@ -235,68 +242,20 @@ export const CountdownTimer: React.FC = () => {
 
         {/* Official Clock Presets */}
         <div className="space-y-3">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">DSE Speaking Presets</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">10 Minutes Master Timer</span>
           
           <div className="space-y-2">
             
-            {/* 10 Minute Preset */}
+            {/* 10 Minutes Preset */}
             <button
               onClick={() => applyPreset(10)}
               className="w-full text-left p-3.5 rounded-xl border border-slate-205 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer flex justify-between items-center group"
             >
               <div>
-                <span className="block text-xs font-extrabold text-slate-800">10 Minute Master Timer</span>
+                <span className="block text-xs font-extrabold text-slate-800">10 Minutes Master Timer</span>
                 <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Joint Group Prep & Speaking default duration</span>
               </div>
               <span className="text-indigo-650 font-mono font-black text-xs bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-xl">10:00</span>
-            </button>
-
-            {/* 8 Minute Preset */}
-            <button
-              onClick={() => applyPreset(8)}
-              className="w-full text-left p-3.5 rounded-xl border border-slate-205 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer flex justify-between items-center group"
-            >
-              <div>
-                <span className="block text-xs font-extrabold text-slate-800">8 Minute Cycle</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Group discussion (4 candidates)</span>
-              </div>
-              <span className="text-slate-650 font-mono font-black text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl">08:00</span>
-            </button>
-
-            {/* 6 Minute Preset */}
-            <button
-              onClick={() => applyPreset(6)}
-              className="w-full text-left p-3.5 rounded-xl border border-slate-205 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer flex justify-between items-center group"
-            >
-              <div>
-                <span className="block text-xs font-extrabold text-slate-800">6 Minute Cycle</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Group discussion (3 candidates)</span>
-              </div>
-              <span className="text-slate-650 font-mono font-black text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl">06:00</span>
-            </button>
-
-            {/* 1 Minute Response */}
-            <button
-              onClick={() => applyPreset(1)}
-              className="w-full text-left p-3.5 rounded-xl border border-slate-205 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer flex justify-between items-center group"
-            >
-              <div>
-                <span className="block text-xs font-extrabold text-slate-800">1 Minute Response</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Individual candidate reflection responder</span>
-              </div>
-              <span className="text-slate-650 font-mono font-black text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl">01:00</span>
-            </button>
-
-            {/* 30 seconds (quick test) */}
-            <button
-              onClick={() => applyPreset(0.5)}
-              className="w-full text-left p-3.5 rounded-xl border border-slate-205 bg-slate-50 hover:bg-slate-100 transition-all cursor-pointer flex justify-between items-center group"
-            >
-              <div>
-                <span className="block text-xs font-extrabold text-slate-800">30 Seconds Tester</span>
-                <span className="text-[10px] text-slate-400 font-bold block mt-0.5">Quick chime/bell validation cycle</span>
-              </div>
-              <span className="text-slate-600 font-mono font-black text-xs bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-xl">00:30</span>
             </button>
 
           </div>
@@ -319,7 +278,7 @@ export const CountdownTimer: React.FC = () => {
 
             <div className="flex space-x-2">
               <button
-                onClick={() => setSoundMuted(!soundMuted)}
+                onClick={handleToggleMute}
                 className={`py-1 px-2.5 rounded-lg text-[10.5px] font-bold cursor-pointer border transition-colors ${
                   soundMuted
                     ? 'bg-amber-100 border-amber-300 text-amber-700'

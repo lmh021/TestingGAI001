@@ -75,23 +75,32 @@ export const ExamProvider: React.FC<{ children: React.ReactNode }> = ({ children
           clearInterval(timer);
           setIsCountdownRunning(false);
           
-          // Play classic exam alarm chime using Web Audio API
-          try {
-            const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-            if (AudioCtx) {
-              const ctx = new AudioCtx();
-              const osc = ctx.createOscillator();
-              const gain = ctx.createGain();
-              osc.connect(gain);
-              gain.connect(ctx.destination);
-              osc.frequency.setValueAtTime(660, ctx.currentTime);
-              gain.gain.setValueAtTime(0.5, ctx.currentTime);
-              gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-              osc.start();
-              osc.stop(ctx.currentTime + 1.5);
+          // Play classic exam alarm chime 5 times in succession using Web Audio API if not muted
+          const isMutedState = localStorage.getItem('exam_portal_sound_muted') === 'true';
+          if (!isMutedState) {
+            try {
+              const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+              if (AudioCtx) {
+                const ctx = new AudioCtx();
+                for (let i = 0; i < 5; i++) {
+                  const startTime = ctx.currentTime + (i * 1.5);
+                  const osc = ctx.createOscillator();
+                  const gain = ctx.createGain();
+                  
+                  osc.connect(gain);
+                  gain.connect(ctx.destination);
+                  
+                  osc.frequency.setValueAtTime(600, startTime);
+                  gain.gain.setValueAtTime(0.5, startTime);
+                  gain.gain.exponentialRampToValueAtTime(0.01, startTime + 1.2);
+                  
+                  osc.start(startTime);
+                  osc.stop(startTime + 1.2);
+                }
+              }
+            } catch (e) {
+              console.log('Audio chiming blocked or unsupported');
             }
-          } catch (e) {
-            console.log('Audio chiming blocked or unsupported');
           }
           return 0;
         }
