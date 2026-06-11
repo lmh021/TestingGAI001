@@ -21,7 +21,7 @@ export const MasterSchedule: React.FC = () => {
   // Rooms and corresponding examiner labels
   const roomLabels: Record<string, string> = {
     '201': 'SK (201)', '202': 'JY (202)', '203': 'AW (203)', '204': 'DY (204)', '205': 'CR (205)',
-    '5A': 'KYY (5A)', '5B': 'TFN (5B)', '5C': 'AJ (5C)', '5D': 'WIY (5D)', '5E': 'MC (5E)',
+    '5A': 'KYY (5A)', '5B': 'TFN (5B)', '5C': 'PWC (5C)', '5D': 'WIY (5D)', '5E': 'MC (5E)',
   };
 
   const currentGroups = selectedSession === 1 ? [1, 2, 3] : [4, 5, 6, 7];

@@ -347,7 +347,7 @@ export const ROOM_EXAMINERS: Record<string, string> = {
   // SPC
   '5A': 'KYY',
   '5B': 'TFN',
-  '5C': 'AJ',
+  '5C': 'PWC',
   '5D': 'WIY',
   '5E': 'MC',
 };
